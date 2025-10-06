@@ -1,0 +1,28 @@
+/*-- scss:defaults --*/
+
+
+$primary: #4E9080;
+$toc-font-face: #4E9080;
+$toc-active-border: #4E9080;
+
+/*-- scss:rules --*/
+
+.nav-item > a.active{
+  color: #4E9080 !important;
+  background-color: white;
+  font-weight: bold;
+}
+
+.nav-item > a:hover {
+  color: orange;
+}
+
+.quarto-title-block .quarto-title-banner {
+  background-image: url(images/logo.png);
+  background-size: 200px;
+  background-position: left;
+  color: white;
+  background-repeat: no-repeat;
+  padding-left: 10px;
+  background-origin: content-box;
+}
