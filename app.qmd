@@ -7113,7 +7113,7 @@ attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", star
       opt_row_striping() |>
       gt_font_padding_align() |>
       gt_last_row_bold() |>
-      gt_container_scroll() |>
+      #gt_container_scroll() |>
       tab_header(str_c("Individuele aandelen en ETF's - performance attributie RD-gedeelte, van ", format(as.Date(start_date), "%d-%b-%Y"), " t/m ", format(as.Date(end_date), "%d-%b-%Y"), ", ", portfolio)) |>
       tab_options(table.width = 1000)
 
@@ -7170,6 +7170,15 @@ attr_tabel_individuele_tickers_sel_ff_nice(start_date = next_to_lastdate, end_da
 #| fig-height: 7
 #| fig-width: 10
 attr_tabel_individuele_tickers_sel_ff_nice(start_date = last_quarter_start, end_date = last_quarter_end)
+```
+
+#### lq2
+
+```{r barchart_bijdrage_aan_trr_per_regel_vps_lq2}
+#| fig-height: 7
+#| fig-width: 10
+
+attr_tabel_individuele_tickers_sel_ff_nice(start_date = as.Date("2025-03-31"), end_date = last_quarter_start)
 ```
 
 #### `r year(last_ultimo_year)`
