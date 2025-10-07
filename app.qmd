@@ -7091,20 +7091,29 @@ attr_tabel_individuele_tickers_sel_ff <- function(portfolio = "VP100", start_dat
    mutate(sector = factor(sector, levels = c(sector_levels, "SubTotaal", "Overige", "Totaal"))) |>
    arrange(sector, desc(end_weight)) 
 }
+```
+
+```{r attr_tabel_individuele_tickers_sel_ff_nice_functie}
 
 attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", start_date = last_ultimo_year, end_date = snapshot_date) {
   tabel_nice <-
       attr_tabel_individuele_tickers_sel_ff(portfolio = portfolio, start_date = start_date, end_date = end_date) |>
-      rename(weight_in_RD = start_weight, weight_in_bm = wt_bm_start, OU = OU_start,
-             `weight_in_RD ` = end_weight, `weight_in_bm ` = wt_bm_end, `OU ` = OU_end) |> 
+      #valuta en koersen erbij op beide momenten
+      left_join(currencies, by = "ticker") |>
+      left_join(all_prices_local_long |> filter(date == start_date), by = c("ticker")) |> select(-date) |> 
+      left_join(all_prices_local_long |> filter(date == end_date), by = c("ticker")) |> select(-date) |> 
+      select(sector, ticker, name, CRNCY, PX_LAST.x, start_weight, wt_bm_start, OU_start, PX_LAST.y, end_weight, wt_bm_end, OU_end, trr, sel_ff) |> 
+      rename(ccy = CRNCY, price = PX_LAST.x, `price ` = PX_LAST.y, wt_in_RD = start_weight, wt_in_bm = wt_bm_start, OU = OU_start,
+             `wt_in_RD ` = end_weight, `wt_in_bm ` = wt_bm_end, `OU ` = OU_end, trr_eur = trr) |> 
       gt(id = "one") |>
-      fmt_percent(columns = c(weight_in_RD, weight_in_bm, `weight_in_RD `, `weight_in_bm `, OU, `OU `, trr, sel_ff), decimals = 2) |>
-      tab_spanner(columns = c(weight_in_RD, weight_in_bm, OU), label = format(start_date, "%d-%b-%y")) |>
-      tab_spanner(columns = c(`weight_in_RD `, `weight_in_bm `, `OU `), label = format(end_date, "%d-%b-%y")) |>
-      tab_spanner(columns = c(trr, sel_ff), label = "Performance") |>
+      fmt_percent(columns = c(wt_in_RD, wt_in_bm, `wt_in_RD `, `wt_in_bm `, OU, `OU `, trr_eur, sel_ff), decimals = 2) |>
+      fmt_number(columns = c(price, `price `), decimals = 2) |>
+      tab_spanner(columns = c(price, wt_in_RD, wt_in_bm, OU), label = format(start_date, "%d-%b-%y")) |>
+      tab_spanner(columns = c(`price `, `wt_in_RD `, `wt_in_bm `, `OU `), label = format(end_date, "%d-%b-%y")) |>
+      tab_spanner(columns = c(trr_eur, sel_ff), label = "Performance") |>
       tab_style(locations = cells_body(columns = c(OU, `OU `, sel_ff)),
                 style = list(cell_text(weight = "bold"))) |>
-      gt_add_dividers_right(columns = c(3, 6, 9)) |>
+      gt_add_dividers_right(columns = c(4, 8, 12)) |>
       gt_data_colors(columns = c("OU", "OU ", "sel_ff")) |>
       gt_delete_first_col_label() |>
       gt_cols_align() |>
