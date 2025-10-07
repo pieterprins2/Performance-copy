@@ -7037,7 +7037,7 @@ attr_tabel_individuele_tickers_sel_ff <- function(portfolio = "VP100", start_dat
     left_join(wt_hist_tickers_in_bm |> rename(wt_bm_start = wt_in_bm), by = c("start_date" = "date", "ticker")) |>
     left_join(wt_hist_tickers_in_bm |> rename(wt_bm_end = wt_in_bm), by = c("end_date" = "date", "ticker")) |>
     #criteria
-    filter(start_weight > 0.005 | sel_ff > 0.005 | sel_ff < -0.005 | wt_bm_start > 0.01) |> 
+    filter(end_weight > 0.005 | start_weight > 0.005 | sel_ff > 0.005 | sel_ff < -0.005 | wt_bm_start > 0.01) |> 
     mutate(across(.cols = everything(), ~replace(., is.na(.), 0))) |> 
     mutate(OU_start = start_weight - wt_bm_start, OU_end = end_weight - wt_bm_end)|> 
     select(ticker, sel_ff, start_weight, end_weight, wt_bm_start, wt_bm_end, OU_start, OU_end)
