@@ -7026,7 +7026,9 @@ tickers_trr_periode <- function(start_date = last_ultimo_year, end_date = snapsh
   select(-trr, -date) |> 
   rename(trr = trr_periode)
 }
+```
 
+```{r attr_tabel_individuele_tickers_sel_ff}
 #mee
 attr_tabel_individuele_tickers_sel_ff <- function(portfolio = "VP100", start_date = last_ultimo_year, end_date = snapshot_date) {
   tabel_ind_aandelen <-
@@ -7087,9 +7089,16 @@ attr_tabel_individuele_tickers_sel_ff <- function(portfolio = "VP100", start_dat
   select(sector, ticker, name, start_weight, wt_bm_start, OU_start, end_weight, wt_bm_end, OU_end, trr, sel_ff) |>
   mutate(name = ifelse(is.na(sector), "", name),
          sector = ifelse(is.na(sector), ticker, sector),
-         ticker = ifelse(sector %in% c("Totaal", "SubTotaal", "Overige"), "", ticker)) |> 
-   mutate(sector = factor(sector, levels = c(sector_levels, "SubTotaal", "Overige", "Totaal"))) |>
-   arrange(sector, desc(end_weight)) 
+         ticker = ifelse(sector %in% c("Totaal", "SubTotaal", "Overige"), "", ticker), 
+         trr = ifelse(sector == "Totaal", 
+                      attr_tabellen_RDRM_simple |> 
+                      filter(portfolio == !!portfolio, date > start_date, date <= end_date) |> 
+                      summarise(trr = prod(1 + pf_rt_RD) - 1) |> 
+                      pull(trr), 
+                      trr)
+         ) |> 
+  mutate(sector = factor(sector, levels = c(sector_levels, "SubTotaal", "Overige", "Totaal"))) |>
+  arrange(sector, desc(end_weight)) 
 }
 ```
 
