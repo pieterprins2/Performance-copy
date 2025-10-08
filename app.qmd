@@ -7096,8 +7096,9 @@ attr_tabel_individuele_tickers_sel_ff <- function(portfolio = "VP100", start_dat
 ```{r attr_tabel_individuele_tickers_sel_ff_nice_functie}
 
 attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", start_date = last_ultimo_year, end_date = snapshot_date) {
+  tabel <- attr_tabel_individuele_tickers_sel_ff(portfolio = portfolio, start_date = start_date, end_date = end_date)
   tabel_nice <-
-      attr_tabel_individuele_tickers_sel_ff(portfolio = portfolio, start_date = start_date, end_date = end_date) |>
+      tabel |>       
       #valuta en koersen erbij op beide momenten
       left_join(currencies, by = "ticker") |>
       left_join(all_prices_local_long |> filter(date == start_date), by = c("ticker")) |> select(-date) |> 
@@ -7114,6 +7115,9 @@ attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", star
       tab_style(locations = cells_body(columns = c(OU, `OU `, sel_ff)),
                 style = list(cell_text(weight = "bold"))) |>
       gt_add_dividers_right(columns = c(4, 8, 12)) |>
+      tab_style(style = cell_borders(sides = "bottom", weight = px(1)), locations = cells_body(rows = nrow(tabel) - 3)) |> 
+      tab_style(style = cell_borders(sides = "bottom", weight = px(1)), locations = cells_body(rows = nrow(tabel) - 1)) |> 
+      sub_missing(missing_text = "") |>   # Replaces NA with empty string (whitespace)
       gt_data_colors(columns = c("OU", "OU ", "sel_ff")) |>
       gt_delete_first_col_label() |>
       gt_cols_align() |>
