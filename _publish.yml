@@ -1,0 +1,4 @@
+- source: app.qmd
+  netlify:
+    - id: 977f4750-440e-4ec1-b249-b45c49eaec16
+      url: 'https://incandescent-faun-d17a4b.netlify.app'

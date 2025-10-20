@@ -2364,7 +2364,7 @@
         "Maintainer": "Carson Sievert <carson@posit.co>",
         "Repository": "CRAN",
         "Date/Publication": "2024-04-04 05:03:00 UTC",
-        "Built": "R 4.4.0; aarch64-apple-darwin20; 2024-04-05 22:31:51 UTC; unix",
+        "Built": "R 4.4.1; aarch64-apple-darwin20; 2025-02-01 04:51:51 UTC; unix",
         "Archs": "htmltools.so.dSYM"
       }
     },
@@ -5426,14 +5426,17 @@
     }
   },
   "files": {
+    "_publish.yml": {
+      "checksum": "553bb39624cee4d2df65cc5a9da2c650"
+    },
     "app.qmd": {
-      "checksum": "ebea50ae13330d950e5a3d48841b5f61"
+      "checksum": "a2ddc632aa68377d9d55031f1003941b"
     },
     "app.rmarkdown": {
-      "checksum": "73aae3761e2109a00ad817d10e650451"
+      "checksum": "9065d32b470f3264959ff376a39cc417"
     },
     "bloomberg_data.rds": {
-      "checksum": "2bdcb5fcd9fd20a2f7da17c6d1e7666b"
+      "checksum": "c9852b3c7a60596d3b0fb50ddc39f95e"
     },
     "Developed_3_Factors.csv": {
       "checksum": "e6807d0fb0a455c63cabe59d5a6f35c5"
@@ -5469,10 +5472,10 @@
       "checksum": "b95f1e616aa020c154d167179b3b1816"
     },
     "portfolio_downloads/20250930_Fondsenlijst.xlsx": {
-      "checksum": "470ff52b051d22e7cc7910f31503cc52"
+      "checksum": "a51131863bd055717cb5630b147a36c8"
     },
-    "portfolio_downloads/Alle Ultimo regels Modelportefeuilles via Airs.xlsx": {
-      "checksum": "ba346e211665b7f3549c968df016a23b"
+    "portfolio_downloads/Alle Ultimo regels Modelportefeuilles via Airs 1.39.03 PM.xlsx": {
+      "checksum": "a301e7954d0eb3a22d49fd83c311acba"
     },
     "portfolio_downloads/VOLK_100RD 20120131.xlsx": {
       "checksum": "280720dc714acad8f542b93b288879cc"
@@ -5964,7 +5967,7 @@
       "checksum": "d68bd6f8702e3325fc42fbb1536529b3"
     },
     "portfolio_downloads/VOLK_30RD-70RM 20130531.xlsx": {
-      "checksum": "8813bbcda44a1ddddeb793373322ee66"
+      "checksum": "9d1486690461288acf197066bcc616b6"
     },
     "portfolio_downloads/VOLK_30RD-70RM 20130630.xlsx": {
       "checksum": "f86b6d4baaf94fda200a6b1c9a3ae7c7"
@@ -8178,16 +8181,16 @@
       "checksum": "e9bd397b15679f28a91c6e596ea1a007"
     },
     "README.md": {
-      "checksum": "4aa575b516b5eb91e069d0f096978dd4"
+      "checksum": "1cc61c86cbf22032eb79093dfcac97ec"
     },
     "return_history_si.rds": {
       "checksum": "9bee9abadbefc729f07077972c112f1b"
     },
     "RiRe.Rdata": {
-      "checksum": "b6cf3815feeb3e5f0f2ac05c4b2fc6d2"
+      "checksum": "65a4337eae8fa390d36706731482d80f"
     },
     "sheet_holdings.xlsx": {
-      "checksum": "4b0adae46323a5dc231699837826cd26"
+      "checksum": "027b390c5de3c7d1edde8325d65805af"
     },
     "sheet_JPM_daily_from_dec_2013.xlsx": {
       "checksum": "c82e2688492e576a50740170022ae239"
@@ -8199,7 +8202,7 @@
       "checksum": "69555d1b32199157b65d4547c6fdc398"
     },
     "yyyymmdd Performance_model_pfs.html": {
-      "checksum": "77549e9919f64cbf0e1bb73dfdb683f4"
+      "checksum": "9bbc49ae8c1df9bd9f2dc29e3c788eac"
     }
   },
   "users": null

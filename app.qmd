@@ -1408,7 +1408,8 @@ if(bij_bavd | bij_pp) {
   }
 
   #alle ruwe portfolio_downloads onder elkaar
-  portfolio_downloads_ruw_vanaf_apr25 <- map_dfr(portfolio_download_files_new, portfolio_downloads_new_inlezen)
+  portfolio_downloads_ruw_vanaf_apr25 <- 
+    map_dfr(portfolio_download_files_new, portfolio_downloads_new_inlezen)
   write_rds(portfolio_downloads_ruw_vanaf_apr25, "portfolio_downloads_ruw_vanaf_apr25.rds")
 } else {
   #als niet op pc of mac (op cloud), lees dan "portfolio_downloads_ruw.rds"
@@ -1493,8 +1494,8 @@ portfolios_tabel_koersen_AIRS <-
                        Naam = ifelse(Naam == "Cummins Engine",
                                      "Cummins Inc", Naam),
                        #Naamswijziging VFEM, IWDA, XDWH en WTCH ineens zonder " EUR" achter de naam
-                       Naam = ifelse(Naam == "Vanguard FTSE Emerging Mkts Index Fd",
-                                     "Vanguard FTSE Emerg. Markets ETF", Naam),
+                       #Naam = ifelse(Naam == "Vanguard FTSE Emerging Mkts Index Fd",
+                       #             "Vanguard FTSE Emerg. Markets ETF", Naam),
                        #IWDA is iets anders dan IWRD
                        Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR",
                                      "SPDR MSCI World Tech ETF", Naam),
@@ -1620,6 +1621,142 @@ portfolios_tabel <-
 
 
 #dividend_info uit blbrg is al split-adjusted
+```
+
+```{r portfolios_tabel_koersen_AIRS_maken_new}
+
+#RenteEUR ontbreekt in read_xlsx("/Users/pieter/Downloads/2025 10 ultimo maand data Matthijs.xlsx")
+#afleiden uit portfolios_tabel_koersen_AIRS_new
+
+# Naam_datum_RenteEUR_per_nom <-
+#   portfolios_tabel_koersen_AIRS_new |>
+#   filter(str_detect(Naam, "%")) |>
+#   mutate(RenteEUR_per_nom = round(`Opgelopen rente`/Aantal, 6)) |>
+#   select(Naam, date, RenteEUR_per_nom) |>
+#   group_by(Naam, date) |>
+#   slice(1)
+# 
+# # #inlezen nieuwe file met alle modelportefeuilles
+# portfolio_downloads_ruw_new_tmaug25 <-
+#   #portfolio_downloads_new_inlezen2("/Users/pieter/Downloads/2025 10 ultimo maand data Matthijs.xlsx") |>
+#    readxl::read_xlsx("/Users/pieter/Downloads/2025 10 ultimo maand data Matthijs.xlsx") |>
+#    #overbodige portefeuilles eruit
+#    filter(!Portefeuille %in% c("DOORNREST", "DOORNTEST", "NutsOhra", "12345", "AFM", "D00000", "DI8"),
+#           !str_detect(Portefeuille, "20"), !str_detect(Portefeuille, "40"),
+#           !str_detect(Portefeuille, "BELEG"), !str_detect(Portefeuille, "Beleg")) |>
+#   #nu zijn over alle eventuele overige modelportefeuilles:
+#   # [1] "100RD"                   "100RM"                   "50RD-50RM"               "30RD-70RM"               "70RD-30RM"                     # [6] "Vlieger 100RD"           "Vlieger 50RD-50RM"       "Vlieger 70RD-30RM"       "Duurzaam-30RD70RM"       "Duurzaam-50RD50RM"
+#   #[11] "Duurzaam-100RD"          "Duurzaam-70RD30RM"       "Vlieger Duurz 100RD"     "Vlieger Duurz 50RD-50RM" "Vlieger Duurz 70RD-30RM"
+#   #nu filteren op de bestaande modelportefeuilles
+#   filter(Portefeuille %in% portfolio_levels_new_monthly_AIRS_files) |>
+#   #nu zijn over
+#   #[1] "100RD"                   "50RD-50RM"               "30RD-70RM"               "70RD-30RM"               "Vlieger 100RD"
+#   #[6] "Vlieger 50RD-50RM"       "Duurzaam-50RD50RM"       "Vlieger Duurz 50RD-50RM"
+#   mutate(date = as.Date(Peildatum),
+#          FondsOmschrijving =
+#              ifelse(is.na(FondsOmschrijving), str_c("Cash"), FondsOmschrijving),
+#          ISINcode = ifelse(str_detect(FondsOmschrijving, "Cash"), "CASH_EUR", ISINcode)) |>
+#   left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = "Portefeuille") |>
+#   select(date,
+#          Naam = FondsOmschrijving,
+#          Valuta,
+#          Aantal = totaalAantal,
+#          Koers = Fondskoers,
+#          Marktwaarde = WaardeEUR,
+#          ISIN = ISINcode,
+#          #`Opgelopen rente` = RenteEUR,
+#          portfolio) |>
+#   mutate(Aantal = ifelse(is.na(Aantal), Marktwaarde, Aantal),
+#          #`Opgelopen rente` = ifelse(is.na(`Opgelopen rente`), 0, `Opgelopen rente`),
+#          Koers = ifelse(is.na(Koers), 0, Koers),
+#          Aantal = as.numeric(Aantal)#,
+#          #
+#          #Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders ETF",
+#           #                           "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam),
+#          #Naam = ifelse(Naam == "Amundi MSCI Europe ESG Leaders ETF",
+#           #             "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam)
+#          ) |>
+#   group_by(date, portfolio)
+# 
+# portfolio_downloads_ruw_new_tmaug25_met_RenteEUR <-
+#   portfolio_downloads_ruw_new_tmaug25 |>
+#   left_join(Naam_datum_RenteEUR_per_nom, by = c("Naam", "date")) |>
+#   mutate(RenteEUR = RenteEUR_per_nom * Aantal,
+#          Koers = as.double(Koers),
+#          Marktwaarde = as.double(Marktwaarde)) |>
+#   replace_na(list(RenteEUR = 0)) |>
+#   select(-RenteEUR_per_nom) |>
+#   rename(`Opgelopen rente` = RenteEUR) |>
+#   select(date, portfolio, ISIN, Naam, Valuta, Aantal, Koers, Marktwaarde, `Opgelopen rente`)
+# 
+# portfolio_downloads_new_inlezen2 <- function(filename) {
+#   readxl::read_xlsx(str_c(pad_deel1, "portfolio_downloads/", filename)) |>
+#   #regel cash
+#   mutate(FondsOmschrijving =
+#            ifelse(is.na(FondsOmschrijving), str_c("Modelportefeuilles " , Portefeuille), FondsOmschrijving)) |>
+#   select(Naam = FondsOmschrijving,
+#          Valuta,
+#          ISIN = ISINcode,
+#          Aantal = totaalAantal,
+#          Koers = Fondskoers,
+#          Marktwaarde = WaardeEUR,
+#          `Opgelopen rente` = RenteEUR,
+#          Portefeuille) |>
+#   filter(Portefeuille %in% portfolio_levels_new_monthly_AIRS_files) |>
+#     left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = "Portefeuille") |>
+#   mutate(date = ymd(str_sub(filename, 1, 8)),
+#          Aantal = ifelse(is.na(Aantal), Marktwaarde, Aantal),
+#          Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam),
+#          ISIN = ifelse(Naam == "Cash", "CASH_EUR", ISIN),
+#          `Opgelopen rente` = ifelse(is.na(`Opgelopen rente`), 0, `Opgelopen rente`),
+#          Koers = ifelse(is.na(Koers), 0, Koers),
+#          Naam = ifelse(Naam == "L` Oreal", "LOreal", Naam),
+#          Naam = ifelse(Naam == "Xtrackers World Health Care EUR", "Xtrackers MSCI World Health Care", Naam),
+#          Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR", "SPDR MSCI World Tech ETF", Naam)) |>
+# select(date, portfolio, ISIN, Naam, Valuta, Aantal, Koers, Marktwaarde, `Opgelopen rente`)
+# }
+# 
+# portfolio_downloads_ruw_new_vanaf_sep25 <-
+#   portfolio_downloads_new_inlezen2("20250930_Fondsenlijst.xlsx")
+# 
+# portfolio_downloads_ruw_new <-
+#   portfolio_downloads_ruw_new_tmaug25_met_RenteEUR |>
+#   bind_rows(portfolio_downloads_ruw_new_vanaf_sep25) |>
+#   #datums naar laaste dag van de maand
+#   mutate(Koers = ifelse(Naam %in% c("Cash", "Opgelopen rente"), 1, Koers),
+#          date = floor_date(date, unit = "month"),
+#          date = lubridate::rollback(date + months(1))) |>
+#   #datum filteren vanaf jan 2012
+#   filter(date >= "2012-01-31") |> 
+#   #Marktwaarde inclusief Opgelopen rente
+#   mutate(Marktwaarde = Marktwaarde + `Opgelopen rente`) |> 
+#   select(date, portfolio, ISIN, Naam, Valuta, Aantal, Koers, Marktwaarde)
+# 
+# #zo maken dat alleen de laatste naam wordt gebruikt
+# naam_isin <-
+#   portfolio_downloads_ruw_new |>
+#   ungroup() |>
+#   select(date, Naam, ISIN) |>
+#   group_by(ISIN) |>
+#   #unieke regels
+#   distinct() |>
+#   #neem van elk de laatste
+#   slice(n()) |> 
+#   select(Naam, ISIN)
+
+# startdates_portfolios_tabel <- portfolios_tabel |> ungroup() |>  group_by(portfolio) |> select(date, portfolio) |> filter(date == min(date)) |> unique() |> rename(startdate = date)
+# 
+# portfolio_downloads_ruw_new_cutoffs <-
+#   portfolio_downloads_ruw_new |>
+#   left_join(startdates_portfolios_tabel, by = "portfolio") |>
+#   filter(date >= startdate) |>
+#   select(-startdate)
+# 
+# portfolios_tabel |> group_by(portfolio, date) |> mutate(n_portfolios_tabel = n()) |> select(portfolio, date, n_portfolios_tabel) |> distinct() |> left_join(portfolio_downloads_ruw_new_cutoffs |> group_by(portfolio, date) |> mutate(n_portfolio_downloads_ruw_new_cutoffs = n()) |> select(portfolio, date, n_portfolio_downloads_ruw_new_cutoffs) |> distinct(), by = c("portfolio", "date")) |> mutate(diff = n_portfolio_downloads_ruw_new_cutoffs - n_portfolios_tabel) |> arrange(desc(diff))
+# 
+# portfolios_tabel_ISIN <-
+#   portfolios_tabel |> ungroup() |> left_join(naam_isin, by = c("name" = "Naam")) 
+
 ```
 
 ```{r etf_levels}
@@ -7116,8 +7253,8 @@ attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", star
       rename(ccy = CRNCY, price = PX_LAST.x, `price ` = PX_LAST.y, wt_in_RD = start_weight, wt_in_bm = wt_bm_start, OU = OU_start,
              `wt_in_RD ` = end_weight, `wt_in_bm ` = wt_bm_end, `OU ` = OU_end, trr_eur = trr) |> 
       gt(id = "one") |>
-      fmt_percent(columns = c(wt_in_RD, wt_in_bm, `wt_in_RD `, `wt_in_bm `, OU, `OU `, trr_eur, sel_ff), decimals = 2) |>
-      fmt_number(columns = c(price, `price `), decimals = 2) |>
+      fmt_percent(columns = contains(c("wt", "OU", "trr", "sel_ff")), decimals = 2) |> 
+      fmt_number(columns = contains("price"), decimals = 2) |>
       tab_spanner(columns = c(price, wt_in_RD, wt_in_bm, OU), label = format(start_date, "%d-%b-%y")) |>
       tab_spanner(columns = c(`price `, `wt_in_RD `, `wt_in_bm `, `OU `), label = format(end_date, "%d-%b-%y")) |>
       tab_spanner(columns = c(trr_eur, sel_ff), label = "Performance") |>
@@ -7126,15 +7263,16 @@ attr_tabel_individuele_tickers_sel_ff_nice <- function(portfolio = "VP100", star
       gt_add_dividers_right(columns = c(4, 8, 12)) |>
       tab_style(style = cell_borders(sides = "bottom", weight = px(1)), locations = cells_body(rows = nrow(tabel) - 3)) |> 
       tab_style(style = cell_borders(sides = "bottom", weight = px(1)), locations = cells_body(rows = nrow(tabel) - 1)) |> 
-      sub_missing(missing_text = "") |>   # Replaces NA with empty string (whitespace)
-      gt_data_colors(columns = c("OU", "OU ", "sel_ff")) |>
+      gt_data_colors(columns = contains(c("OU", "sel_ff"))) |>
       gt_delete_first_col_label() |>
       gt_cols_align() |>
       gt_first_col_bold() |>
+      sub_missing(missing_text = "") |>
       sub_zero(zero_text = " ") |>
       opt_row_striping() |>
       gt_font_padding_align() |>
       gt_last_row_bold() |>
+      tab_options(table.font.size = "10px") |>  # Adjust as needed (e.g., "small", "16px", "1.2em")
       #gt_container_scroll() |>
       tab_header(str_c("Individuele aandelen en ETF's - performance attributie RD-gedeelte, van ", format(as.Date(start_date), "%d-%b-%Y"), " t/m ", format(as.Date(end_date), "%d-%b-%Y"), ", ", portfolio)) |>
       tab_options(table.width = 1000)
