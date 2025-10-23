@@ -1452,24 +1452,24 @@ portfolio_downloads_ruw <-
 ```
 
 ```{r portfolios_tabel_koersen_AIRS_maken_new_niet_gelukt}
-portfolios_tabel_koersen_AIRS_new <- 
-  portfolio_downloads_ruw |>
-  mutate(portfolio_date = str_remove(portfolio_date, ".xlsx"),
-         date = str_sub(portfolio_date, start = nchar(portfolio_date) - 8),
-         date = ymd(date),
-         portfolio_AIRS = str_sub(portfolio_date, start = 1, end = nchar(portfolio_date) - 9),
-         portfolio_AIRS = str_remove(portfolio_AIRS, "VOLK_"),
-         Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam)) |> 
-         #name_ = str_replace_all(Naam, " ", "_")) |>   #name_ kun je mee joinen
-#     
-#     #portfolio naam erin via join en verwijderen overtollige kolommen
-     left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = c("portfolio_AIRS" = "portfolio_date")) |> 
-     select(-c(portfolio_date, portfolio_AIRS, Portefeuille)) |> 
-#     #datums naar ultimo's
-     mutate(date = floor_date(date, unit = "month"),
-            date = lubridate::rollback(date + months(1))) |> 
-     left_join(holdings, by = c("Naam" = "name"))
-#     left_join(holdings, by = c("ISIN", "name_"))
+# portfolios_tabel_koersen_AIRS_new <- 
+#   portfolio_downloads_ruw |>
+#   mutate(portfolio_date = str_remove(portfolio_date, ".xlsx"),
+#          date = str_sub(portfolio_date, start = nchar(portfolio_date) - 8),
+#          date = ymd(date),
+#          portfolio_AIRS = str_sub(portfolio_date, start = 1, end = nchar(portfolio_date) - 9),
+#          portfolio_AIRS = str_remove(portfolio_AIRS, "VOLK_"),
+#          Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam)) |> 
+#          #name_ = str_replace_all(Naam, " ", "_")) |>   #name_ kun je mee joinen
+# #     
+# #     #portfolio naam erin via join en verwijderen overtollige kolommen
+#      left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = c("portfolio_AIRS" = "portfolio_date")) |> 
+#      select(-c(portfolio_date, portfolio_AIRS, Portefeuille)) |> 
+# #     #datums naar ultimo's
+#      mutate(date = floor_date(date, unit = "month"),
+#             date = lubridate::rollback(date + months(1))) |> 
+#      left_join(holdings, by = c("Naam" = "name"))
+# #     left_join(holdings, by = c("ISIN", "name_"))
 ```
 
 ```{r portfolios_tabel_koersen_AIRS_maken}
