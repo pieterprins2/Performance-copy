@@ -1037,6 +1037,13 @@ next_to_lastdate3 <- ceiling_date(lastdate %m-% months(3), 'month') %m-% days(1)
 next_to_lastdate4 <- ceiling_date(lastdate %m-% months(4), 'month') %m-% days(1)
 one_year_ago <- ceiling_date(lastdate %m-% months(12), 'month') %m-% days(1)
 
+before_last_quarter_start <-
+  dates %>%
+  filter(date != snapshot_date) %>%
+  mutate(month = month(date)) %>%
+  filter(month %in% c(3, 6, 9, 12)) %>%
+  select(date) %>% tail(3) %>% head(1) %>% pull()
+
 last_quarter_start <-
   dates %>%
   filter(date != snapshot_date) %>%
@@ -1431,41 +1438,48 @@ tussentijdse_update_uit_AIRS_date <-
 ```{r portfolio_downloads_ruw_samenvoegen_en_ISIN_erbij}
 
 #isins
-naam_isin <- readxl::read_excel(holdings_file, sheet = "naam_isin")
-
-#portfolio_downloads_ruw_tm_mar25 en portfolio_downloads_ruw_vanaf_apr25 samenvoegen
+# naam_isin <- readxl::read_excel(holdings_file, sheet = "naam_isin")
+# 
+# #portfolio_downloads_ruw_tm_mar25 en portfolio_downloads_ruw_vanaf_apr25 samenvoegen
 portfolio_downloads_ruw <-
-  portfolio_downloads_ruw_tm_mar25  |> 
-  bind_rows(portfolio_downloads_ruw_vanaf_apr25) |> 
-  #ISINs erbij
-  left_join(naam_isin, by = "Naam")# |> 
-  #Cash regels CASH_EUR
-  #mutate(ISIN = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "CASH_EUR", ISIN))
+  portfolio_downloads_ruw_tm_mar25  |>
+  bind_rows(portfolio_downloads_ruw_vanaf_apr25)
+#   #ISINs erbij
+#   left_join(naam_isin, by = "Naam")# |> 
+#   #Cash regels CASH_EUR
+#   #mutate(ISIN = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "CASH_EUR", ISIN))
 
 ```
 
 ```{r portfolios_tabel_koersen_AIRS_maken_new_niet_gelukt}
 portfolios_tabel_koersen_AIRS_new <- 
-  portfolio_downloads_ruw |> 
+  portfolio_downloads_ruw |>
   mutate(portfolio_date = str_remove(portfolio_date, ".xlsx"),
          date = str_sub(portfolio_date, start = nchar(portfolio_date) - 8),
          date = ymd(date),
          portfolio_AIRS = str_sub(portfolio_date, start = 1, end = nchar(portfolio_date) - 9),
          portfolio_AIRS = str_remove(portfolio_AIRS, "VOLK_"),
-         Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam),
-         name_ = str_replace_all(Naam, " ", "_")) |>  #name_ kun je mee joinen
-    
-    #portfolio naam erin via join en verwijderen overtollige kolommen
-    left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = c("portfolio_AIRS" = "portfolio_date")) |> 
-    select(-c(portfolio_date, portfolio_AIRS, Portefeuille)) |> 
-    #datums naar ultimo's
-    mutate(date = floor_date(date, unit = "month"),
-           date = lubridate::rollback(date + months(1))) |> 
-    left_join(holdings, by = c("ISIN", "name_"))
+         Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam)) |> 
+         #name_ = str_replace_all(Naam, " ", "_")) |>   #name_ kun je mee joinen
+#     
+#     #portfolio naam erin via join en verwijderen overtollige kolommen
+     left_join(portfolio_levels_old_and_new_monthly_AIRS_files_tabel_en_portfolio_levels, by = c("portfolio_AIRS" = "portfolio_date")) |> 
+     select(-c(portfolio_date, portfolio_AIRS, Portefeuille)) |> 
+#     #datums naar ultimo's
+     mutate(date = floor_date(date, unit = "month"),
+            date = lubridate::rollback(date + months(1))) |> 
+     left_join(holdings, by = c("Naam" = "name"))
+#     left_join(holdings, by = c("ISIN", "name_"))
 ```
 
 ```{r portfolios_tabel_koersen_AIRS_maken}
 #HIER
+naam_isin <- readxl::read_excel(holdings_file, sheet = "naam_isin", 
+                                col_types = c("text", "text", "text")) |> 
+            #na import geen join ivm de spaces
+             mutate(Naam_VOLK = str_squish(Naam_VOLK),
+                    Naam_new_sheet = str_squish(Naam_new_sheet))
+
 #allerlei aanpassingen aan formaat, kolommen erbij maken, datum, pf gewicht etc
 portfolios_tabel_koersen_AIRS <- 
   portfolio_downloads_ruw %>%
@@ -1480,73 +1494,81 @@ portfolios_tabel_koersen_AIRS <-
                          select(-c(portfolio_date, portfolio_AIRS, Portefeuille)) |>
 
                        #NAAMSWIJZIGINGEN
-                       mutate(  
-                       #eind mei 2020 is de naam van cash in de AIRS files
-                       #veranderd van "Intern ..." naar "Modelportefeuilles ..."
-                       #code voor veranderen OUDE NAAM in NIEUWE NAAM in de historie
-                       #Naam = ifelse(Naam == "OUDE NAAM", "NIEUWE NAAM", Naam),
-                       Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam),
-                       #Naamswijziging Essilor in 2021
-                       Naam = ifelse(Naam == "Essilor International", "EssilorLuxottica", Naam),
-                       #Naamswijziging RDSA in 2022
-                       Naam = ifelse(Naam == "Royal Dutch Shell", "Shell PLC", Naam),
-                       #Naamswijziging Cummins in 2022
-                       Naam = ifelse(Naam == "Cummins Engine",
-                                     "Cummins Inc", Naam),
-                       #Naamswijziging VFEM, IWDA, XDWH en WTCH ineens zonder " EUR" achter de naam
-                       #Naam = ifelse(Naam == "Vanguard FTSE Emerging Mkts Index Fd",
-                       #             "Vanguard FTSE Emerg. Markets ETF", Naam),
-                       #IWDA is iets anders dan IWRD
-                       Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR",
-                                     "SPDR MSCI World Tech ETF", Naam),
-                       Naam = ifelse(Naam == "Xtrackers World Health Care EUR",
-                                     "Xtrackers World Health Care", Naam),
-                       #Naamswijziging LEAD GY in maart 2024, 
-                       #oude naam is "Lyxor MSCI Eur ESG Lead UCITS ETF - Acc"
-                       #nieuwe naam is "Amundi MSCI Europe ESG Leaders ETF"
-                       Naam = ifelse(Naam == "Lyxor MSCI Eur ESG Lead UCITS ETF - Acc",
-                                     "Amundi MSCI Europe ESG Leaders ETF", Naam),
-                       #nog een wijziging in sep 2025
-                       Naam = ifelse(Naam == "Amundi MSCI Europe ESG Leaders ETF",
-                       "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam),
-                       #Naamswijziging MWOP GY in sep 2024, 
-                       #oude naam is "Amundi MSCI World ESG Leaders UCITS ETF Acc"
-                       #nieuwe naam is "Amundi MSCI World ESG Leaders ETF"
-                       Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders UCITS ETF Acc",
-                                             "Amundi MSCI World ESG Selec UCITS ETF Acc", Naam),
-                       #Naamswijziging MWOP GY in oct 2025, 
-                       #oude naam is "Amundi MSCI World ESG Leaders ETF"
-                       #nieuwe naam is "Amundi MSCI World ESG Selec UCITS ETF Acc"
-                       Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders ETF",
-                                     "Amundi MSCI World ESG Selec UCITS ETF Acc", Naam),
-                       #Naamswijziging LEAD GY in oct 2025, 
-                       #oude naam is "Amundi MSCI Europe ESG Leaders ETF"
-                       #nieuwe naam is "Amundi MSCI Europe ESG Selec UCITS ETF Acc"
-                       Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders ETF",
-                                     "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam),
-                       Naam = ifelse(Naam == "L` Oreal", 
-                                     "LOreal", Naam),
-                       #Naamswijziging XDWH GY in mar 2025, 
-                       Naam = ifelse(Naam == "Xtrackers World Health Care", 
-                                     "Xtrackers MSCI World Health Care", Naam),
-                       #Naamswijziging SPPY_GY in mar 2025, 
-                       Naam = ifelse(Naam == "SPDR SP500 ESG Leaders ETF", 
-                                     "SPDR S&P 500 Leaders UCITS ETF (Acc)", Naam),
-                       #Naamswijzigingen NTSCLBE NA in 2012 en 2025, 
-                       Naam = ifelse(Naam == "NT World Small Cap ESG Low Carbon" |
-                                     Naam == "NT World Small Cap ESG Low Carbon Ind",
-                                     "NT Wld SC Low Carbon Eq Index FGR Feeder B", Naam),
-                       ## Verander deze namen ook in het holdings sheet in Excel
-                       name_ = str_replace_all(Naam, " ", "_"), #name_ kun je mee joinen
-                       # Valuta = ifelse(Naam == "Opgelopen rente", "EUR", Valuta),
-                       # Aantal = ifelse(Naam == "Opgelopen rente", Marktwaarde, Aantal),
-                       Koers = ifelse(Naam %in% c("Cash", "Opgelopen rente"), 1, Koers)) %>%
-                #datum naar laatste vd maand (voor de join)
-                mutate(date = floor_date(date, unit = "month"),
-                       date = lubridate::rollback(date + months(1))) %>%
-                       #join met holdings voor ticker, type, sector etc. info
-                left_join(holdings, by = "name_") #ISIN van maken
-              #  left_join(holdings, by = "_name") #ISIN van maken
+  
+                       # mutate(  
+                       # #eind mei 2020 is de naam van cash in de AIRS files
+                       # #veranderd van "Intern ..." naar "Modelportefeuilles ..."
+                       # #code voor veranderen OUDE NAAM in NIEUWE NAAM in de historie
+                       # #Naam = ifelse(Naam == "OUDE NAAM", "NIEUWE NAAM", Naam),
+                       # Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam),
+                       # #Naamswijziging Essilor in 2021
+                       # Naam = ifelse(Naam == "Essilor International", "EssilorLuxottica", Naam),
+                       # #Naamswijziging RDSA in 2022
+                       # Naam = ifelse(Naam == "Royal Dutch Shell", "Shell PLC", Naam),
+                       # #Naamswijziging Cummins in 2022
+                       # Naam = ifelse(Naam == "Cummins Engine",
+                       #               "Cummins Inc", Naam),
+                       # #Naamswijziging VFEM, IWDA, XDWH en WTCH ineens zonder " EUR" achter de naam
+                       # #Naam = ifelse(Naam == "Vanguard FTSE Emerging Mkts Index Fd",
+                       # #             "Vanguard FTSE Emerg. Markets ETF", Naam),
+                       # #IWDA is iets anders dan IWRD
+                       # Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR",
+                       #               "SPDR MSCI World Tech ETF", Naam),
+                       # Naam = ifelse(Naam == "Xtrackers World Health Care EUR",
+                       #               "Xtrackers World Health Care", Naam),
+                       # #Naamswijziging LEAD GY in maart 2024, 
+                       # #oude naam is "Lyxor MSCI Eur ESG Lead UCITS ETF - Acc"
+                       # #nieuwe naam is "Amundi MSCI Europe ESG Leaders ETF"
+                       # Naam = ifelse(Naam == "Lyxor MSCI Eur ESG Lead UCITS ETF - Acc",
+                       #               "Amundi MSCI Europe ESG Leaders ETF", Naam),
+                       # #nog een wijziging in sep 2025
+                       # Naam = ifelse(Naam == "Amundi MSCI Europe ESG Leaders ETF",
+                       # "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam),
+                       # #Naamswijziging MWOP GY in sep 2024, 
+                       # #oude naam is "Amundi MSCI World ESG Leaders UCITS ETF Acc"
+                       # #nieuwe naam is "Amundi MSCI World ESG Leaders ETF"
+                       # Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders UCITS ETF Acc",
+                       #                       "Amundi MSCI World ESG Selec UCITS ETF Acc", Naam),
+                       # #Naamswijziging MWOP GY in oct 2025, 
+                       # #oude naam is "Amundi MSCI World ESG Leaders ETF"
+                       # #nieuwe naam is "Amundi MSCI World ESG Selec UCITS ETF Acc"
+                       # Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders ETF",
+                       #               "Amundi MSCI World ESG Selec UCITS ETF Acc", Naam),
+                       # #Naamswijziging LEAD GY in oct 2025, 
+                       # #oude naam is "Amundi MSCI Europe ESG Leaders ETF"
+                       # #nieuwe naam is "Amundi MSCI Europe ESG Selec UCITS ETF Acc"
+                       # Naam = ifelse(Naam == "Amundi MSCI World ESG Leaders ETF",
+                       #               "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam),
+                       # Naam = ifelse(Naam == "L` Oreal", 
+                       #               "LOreal", Naam),
+                       # #Naamswijziging XDWH GY in mar 2025, 
+                       # Naam = ifelse(Naam == "Xtrackers World Health Care", 
+                       #               "Xtrackers MSCI World Health Care", Naam),
+                       # #Naamswijziging SPPY_GY in mar 2025, 
+                       # Naam = ifelse(Naam == "SPDR SP500 ESG Leaders ETF", 
+                       #               "SPDR S&P 500 Leaders UCITS ETF (Acc)", Naam),
+                       # #Naamswijzigingen NTSCLBE NA in 2012 en 2025, 
+                       # Naam = ifelse(Naam == "NT World Small Cap ESG Low Carbon" |
+                       #               Naam == "NT World Small Cap ESG Low Carbon Ind",
+                       #               "NT Wld SC Low Carbon Eq Index FGR Feeder B", Naam),
+                       # Naam = ifelse(Naam == "Vanguard FTSE Emerg. Markets ETF",
+                       #               "Vanguard FTSE Emerging Mkts Index Fd", Naam),
+                       # ## Verander deze namen ook in het holdings sheet in Excel
+                       # name_ = str_replace_all(Naam, " ", "_"), #name_ kun je mee joinen
+                       # # Valuta = ifelse(Naam == "Opgelopen rente", "EUR", Valuta),
+                       # # Aantal = ifelse(Naam == "Opgelopen rente", Marktwaarde, Aantal),
+                       
+  left_join(naam_isin, by = c("Naam" = "Naam_VOLK")) |> 
+  mutate(Naam = Naam_new_sheet) |> 
+  mutate(Koers = ifelse(Naam %in% c("Cash", "Opgelopen rente"), 1, Koers))  |> 
+  #Nieuwe namen hanteren
+  select(-Naam_new_sheet) %>%              
+  #datum naar laatste vd maand (voor de join)
+  mutate(date = floor_date(date, unit = "month"),
+         date = lubridate::rollback(date + months(1))) %>%
+  #join met holdings voor ticker, type, sector etc. info
+  left_join(holdings, by = "ISIN")
+  #  left_join(holdings, by = "_name") #ISIN van maken
 
 ```
 
@@ -1677,7 +1699,7 @@ portfolios_tabel <-
 #           #             "Amundi MSCI Europe ESG Selec UCITS ETF Acc", Naam)
 #          ) |>
 #   group_by(date, portfolio)
-# 
+# #
 # portfolio_downloads_ruw_new_tmaug25_met_RenteEUR <-
 #   portfolio_downloads_ruw_new_tmaug25 |>
 #   left_join(Naam_datum_RenteEUR_per_nom, by = c("Naam", "date")) |>
@@ -1709,10 +1731,10 @@ portfolios_tabel <-
 #          Naam = ifelse(str_starts(Naam, "Intern") | str_starts(Naam, "Modelportefeuilles"), "Cash", Naam),
 #          ISIN = ifelse(Naam == "Cash", "CASH_EUR", ISIN),
 #          `Opgelopen rente` = ifelse(is.na(`Opgelopen rente`), 0, `Opgelopen rente`),
-#          Koers = ifelse(is.na(Koers), 0, Koers),
-#          Naam = ifelse(Naam == "L` Oreal", "LOreal", Naam),
-#          Naam = ifelse(Naam == "Xtrackers World Health Care EUR", "Xtrackers MSCI World Health Care", Naam),
-#          Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR", "SPDR MSCI World Tech ETF", Naam)) |>
+#          Koers = ifelse(is.na(Koers), 0, Koers)) |>
+#          #Naam = ifelse(Naam == "L` Oreal", "LOreal", Naam),
+#          #Naam = ifelse(Naam == "Xtrackers World Health Care EUR", "Xtrackers MSCI World Health Care", Naam),
+#          #Naam = ifelse(Naam == "SPDR MSCI World Tech ETF EUR", "SPDR MSCI World Tech ETF", Naam)) |>
 # select(date, portfolio, ISIN, Naam, Valuta, Aantal, Koers, Marktwaarde, `Opgelopen rente`)
 # }
 # 
@@ -1727,23 +1749,22 @@ portfolios_tabel <-
 #          date = floor_date(date, unit = "month"),
 #          date = lubridate::rollback(date + months(1))) |>
 #   #datum filteren vanaf jan 2012
-#   filter(date >= "2012-01-31") |> 
+#   filter(date >= "2012-01-31") |>
 #   #Marktwaarde inclusief Opgelopen rente
-#   mutate(Marktwaarde = Marktwaarde + `Opgelopen rente`) |> 
+#   mutate(Marktwaarde = Marktwaarde + `Opgelopen rente`) |>
 #   select(date, portfolio, ISIN, Naam, Valuta, Aantal, Koers, Marktwaarde)
+# #
+# # #zo maken dat alleen de laatste naam wordt gebruikt
+#   # portfolio_downloads_ruw_new |>
+#   # ungroup() |>
+#   # select(date, Naam, ISIN) |>
+#   # group_by(ISIN) |>
+#   # #unieke regels
+#   # distinct() |>
+#   # #neem van elk de laatste
+#   # slice(n()) |>
+#   # select(Naam, ISIN)
 # 
-# #zo maken dat alleen de laatste naam wordt gebruikt
-# naam_isin <-
-#   portfolio_downloads_ruw_new |>
-#   ungroup() |>
-#   select(date, Naam, ISIN) |>
-#   group_by(ISIN) |>
-#   #unieke regels
-#   distinct() |>
-#   #neem van elk de laatste
-#   slice(n()) |> 
-#   select(Naam, ISIN)
-
 # startdates_portfolios_tabel <- portfolios_tabel |> ungroup() |>  group_by(portfolio) |> select(date, portfolio) |> filter(date == min(date)) |> unique() |> rename(startdate = date)
 # 
 # portfolio_downloads_ruw_new_cutoffs <-
@@ -1752,10 +1773,32 @@ portfolios_tabel <-
 #   filter(date >= startdate) |>
 #   select(-startdate)
 # 
-# portfolios_tabel |> group_by(portfolio, date) |> mutate(n_portfolios_tabel = n()) |> select(portfolio, date, n_portfolios_tabel) |> distinct() |> left_join(portfolio_downloads_ruw_new_cutoffs |> group_by(portfolio, date) |> mutate(n_portfolio_downloads_ruw_new_cutoffs = n()) |> select(portfolio, date, n_portfolio_downloads_ruw_new_cutoffs) |> distinct(), by = c("portfolio", "date")) |> mutate(diff = n_portfolio_downloads_ruw_new_cutoffs - n_portfolios_tabel) |> arrange(desc(diff))
-# 
 # portfolios_tabel_ISIN <-
-#   portfolios_tabel |> ungroup() |> left_join(naam_isin, by = c("name" = "Naam")) 
+#   portfolios_tabel |> ungroup() |> left_join(naam_isin |> select(-Naam_VOLK) |> unique(), by = c("name" = "Naam_new_sheet"))
+# 
+# values_portfolios_tabel_ISIN <-
+#   portfolios_tabel_ISIN |>
+#   group_by(date, portfolio) |>
+#   summarize(value_eur = sum(value_eur), .groups = "drop")
+# values_portfolio_downloads_ruw_new_cutoffs <-
+#   portfolio_downloads_ruw_new_cutoffs |>
+#   group_by(date, portfolio) |>
+#   summarize(value_eur = sum(Marktwaarde), .groups = "drop")
+# 
+# values_verschillen <- 
+#   portfolio_downloads_ruw_new_cutoffs |> rename(new_value = Marktwaarde) |> group_by(portfolio, date) |> summarise(new_value = sum(new_value)) |> 
+#     left_join(portfolios_tabel_ISIN |> rename(old_value = value_eur) |> group_by(portfolio, date) |> summarise(old_value = sum(old_value)), by = c("date", "portfolio")) |> mutate(diff = new_value - old_value, abs_diff_pct = abs(round(diff/old_value, 3))) |> arrange(desc(abs_diff_pct))
+# 
+# values_verschillen_regels <- portfolio_downloads_ruw_new_cutoffs |> rename(new_value = Marktwaarde) |> left_join(portfolios_tabel_ISIN, by = c("date", "portfolio", "ISIN")) |> rename(old_value = value_eur) |> mutate(diff = new_value - old_value, abs_diff_pct = abs(round(diff/old_value, 3))) |> arrange(desc(abs_diff_pct))
+# 
+# #ok check
+# aantal_regels__verschillen <- portfolios_tabel_ISIN |> ungroup() |> group_by(date, portfolio) |> summarize(n_old = n(), .groups = "drop") |> full_join(portfolio_downloads_ruw_new_cutoffs |> group_by(date, portfolio) |> summarize(n_new = n(), .groups = "drop"), by = c("date", "portfolio")) |> mutate(abs_diff_n = abs(n_new - n_old)) |> arrange(desc(abs_diff_n))
+# 
+# shares_verschillen <- portfolio_downloads_ruw_new_cutoffs |> left_join(portfolios_tabel_ISIN, by = c("date", "portfolio", "ISIN"))|> select(date, portfolio, Naam, ISIN, old_shares = shares, new_shares = Aantal) |> mutate(diff_shares = abs(new_shares - old_shares), abs_diff_shares_pct = abs(round(diff_shares/old_shares, 3))) |> 
+#     arrange(desc(abs_diff_shares_pct))
+# 
+# price_verschillen <- portfolio_downloads_ruw_new_cutoffs |> left_join(portfolios_tabel_ISIN, by = c("date", "portfolio", "ISIN"))|> select(date, portfolio, Naam, ISIN, old_price = price, new_price = Koers) |> mutate(diff_price = abs(new_price - old_price)) |> mutate(ratio = new_price/old_price) |> arrange(desc(diff_price)) 
+# 
 
 ```
 
@@ -3916,7 +3959,9 @@ pf_bm_ou_region_weights_long_all <-
 if(bij_pp) {
   pf_bm_ou_sector_weights_long_all |> write_rds("/Users/pieter/Library/CloudStorage/OneDrive-Personal/R Projects/Beleggingsvoorstel/shiny/pf_bm_ou_sector_weights_long_all.rds")
   pf_bm_ou_region_weights_long_all |> write_rds("/Users/pieter/Library/CloudStorage/OneDrive-Personal/R Projects/Beleggingsvoorstel/shiny/pf_bm_ou_region_weights_long_all.rds")
-}
+  portfolios_tabel_lastdate |> write_rds("/Users/pieter/Library/CloudStorage/OneDrive-Personal/R Projects/Beleggingsvoorstel/shiny/portfolios_tabel_lastdate.rds")
+  portfolios_tabel_lastdate |> write_rds('/Users/pieter/Library/CloudStorage/OneDrive-Personal/R Projects/Vergelijkingssites/portfolios_tabel_lastdate.rds')
+  }
 ```
 
 ```{r portfolio_country_region_weights_tabel_function}
@@ -6241,6 +6286,12 @@ attr_tabel_RDRM_simple_summaries_nice(start_date = next_to_lastdate, end_date = 
 attr_tabel_RDRM_simple_summaries_nice(start_date = last_quarter_start, end_date = last_quarter_end)
 ```
 
+#### llq
+
+```{r attr_pfs_llq}
+attr_tabel_RDRM_simple_summaries_nice(start_date = before_last_quarter_start, end_date = last_quarter_start)
+```
+
 #### `r last_year`
 
 ```{r attr_pfs_ly}
@@ -6359,6 +6410,14 @@ chart_attr_effecten_RDRM(start_date = next_to_lastdate, end_date = lastdate)
 
 chart_attr_effecten_RDRM(start_date = last_quarter_start, end_date = last_quarter_end) 
 ```
+
+#### llq
+
+```{r attr_RDRM_graphs_llq}
+
+chart_attr_effecten_RDRM(start_date = before_last_quarter_start, end_date = last_quarter_start) 
+```
+
 
 #### `r last_year`
 
@@ -7332,13 +7391,13 @@ attr_tabel_individuele_tickers_sel_ff_nice(start_date = next_to_lastdate, end_da
 attr_tabel_individuele_tickers_sel_ff_nice(start_date = last_quarter_start, end_date = last_quarter_end)
 ```
 
-#### lq2
+#### llq
 
-```{r barchart_bijdrage_aan_trr_per_regel_vps_lq2}
+```{r barchart_bijdrage_aan_trr_per_regel_vps_llq}
 #| fig-height: 7
 #| fig-width: 10
 
-attr_tabel_individuele_tickers_sel_ff_nice(start_date = as.Date("2025-03-31"), end_date = last_quarter_start)
+attr_tabel_individuele_tickers_sel_ff_nice(start_date = before_last_quarter_start, end_date = last_quarter_start)
 ```
 
 #### `r year(last_ultimo_year)`
